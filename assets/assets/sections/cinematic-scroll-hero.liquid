@@ -1,23 +1,761 @@
 {% comment %}
-==================================================
-Shopify Cinematic Scroll Hero
-
-Version: 1.0.0
-
-Author: Yasir Shahzad
-
-This section is currently under active development.
-
-The production-ready version will include:
-
-• GSAP + ScrollTrigger animations
-• Theme Editor controls
-• Responsive layout
-• CTA buttons
-• Collection shortcuts
-• Product cards
-• Accessibility improvements
-• Core Web Vitals optimization
-• Horizon theme compatibility
-==================================================
+  Cinematic Scroll Hero Section
+  Version: 1.0.0
+  Description: A premium cinematic scroll animation hero with GSAP and ScrollTrigger
+  Author: Open Source Contributors
+  License: MIT
 {% endcomment %}
+
+{{ 'cinematic-scroll-hero.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign section_id = section.id
+  assign bg_color = section.settings.bg_color
+  assign text_color = section.settings.text_color
+  assign overlay_gradient = section.settings.overlay_gradient
+  assign overlay_opacity = section.settings.overlay_opacity | divided_by: 100.0
+  assign border_radius = section.settings.border_radius
+  assign image_width = section.settings.image_width
+  assign layer_opacity = section.settings.layer_opacity | divided_by: 100.0
+  assign desktop_spacing_top = section.settings.desktop_spacing_top
+  assign desktop_spacing_bottom = section.settings.desktop_spacing_bottom
+  assign mobile_spacing_top = section.settings.mobile_spacing_top
+  assign mobile_spacing_bottom = section.settings.mobile_spacing_bottom
+  assign section_height = section.settings.section_height
+  assign max_content_width = section.settings.max_content_width
+  assign content_alignment = section.settings.content_alignment
+  assign animation_enabled = section.settings.animation_enabled
+  assign scroll_speed = section.settings.scroll_speed
+  assign floating_enabled = section.settings.floating_enabled
+  assign floating_intensity = section.settings.floating_intensity
+  assign rotation_amount = section.settings.rotation_amount
+  assign parallax_intensity = section.settings.parallax_intensity
+  assign layer_spread = section.settings.layer_spread
+  assign blur_amount = section.settings.blur_amount
+  assign heading = section.settings.heading
+  assign subheading = section.settings.subheading
+  assign rich_text = section.settings.rich_text
+  assign primary_cta_label = section.settings.primary_cta_label
+  assign primary_cta_url = section.settings.primary_cta_url
+  assign secondary_cta_label = section.settings.secondary_cta_label
+  assign secondary_cta_url = section.settings.secondary_cta_url
+  assign show_cards = section.settings.show_cards
+  assign card_collection_1 = section.settings.card_collection_1
+  assign card_collection_2 = section.settings.card_collection_2
+  assign card_product_1 = section.settings.card_product_1
+  assign card_product_2 = section.settings.card_product_2
+  assign image_aspect_ratio = section.settings.image_aspect_ratio
+  assign image_object_fit = section.settings.image_object_fit
+  assign image_drop_shadow = section.settings.image_drop_shadow
+  assign image_lazy_loading = section.settings.image_lazy_loading
+  assign image_widths = section.settings.image_widths
+-%}
+
+{%- style -%}
+  #cinematic-{{ section_id }} {
+    --cinematic-bg-color: {{ bg_color }};
+    --cinematic-text-color: {{ text_color }};
+    --cinematic-overlay-opacity: {{ overlay_opacity }};
+    --cinematic-border-radius: {{ border_radius }}px;
+    --cinematic-image-width: {{ image_width }}%;
+    --cinematic-layer-opacity: {{ layer_opacity }};
+    --cinematic-desktop-spacing-top: {{ desktop_spacing_top }}px;
+    --cinematic-desktop-spacing-bottom: {{ desktop_spacing_bottom }}px;
+    --cinematic-mobile-spacing-top: {{ mobile_spacing_top }}px;
+    --cinematic-mobile-spacing-bottom: {{ mobile_spacing_bottom }}px;
+    --cinematic-section-height: {{ section_height }}vh;
+    --cinematic-max-content-width: {{ max_content_width }}px;
+    --cinematic-scroll-speed: {{ scroll_speed }};
+    --cinematic-floating-intensity: {{ floating_intensity }};
+    --cinematic-rotation-amount: {{ rotation_amount }};
+    --cinematic-parallax-intensity: {{ parallax_intensity }};
+    --cinematic-layer-spread: {{ layer_spread }};
+    --cinematic-blur-amount: {{ blur_amount }}px;
+    --cinematic-image-aspect-ratio: {{ image_aspect_ratio }};
+    --cinematic-image-object-fit: {{ image_object_fit }};
+    {% if image_drop_shadow %}
+      --cinematic-image-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    {% else %}
+      --cinematic-image-shadow: none;
+    {% endif %}
+  }
+
+  {% if overlay_gradient != blank %}
+    #cinematic-{{ section_id }} .cinematic__overlay {
+      background: {{ overlay_gradient }};
+    }
+  {% endif %}
+
+  @media screen and (max-width: 749px) {
+    #cinematic-{{ section_id }} {
+      --cinematic-section-height: {{ section_height | minus: 20 }}vh;
+    }
+  }
+{%- endstyle -%}
+
+<div
+  class="cinematic"
+  id="cinematic-{{ section_id }}"
+  data-section-id="{{ section_id }}"
+  data-animation-enabled="{{ animation_enabled }}"
+  data-floating-enabled="{{ floating_enabled }}"
+  data-content-alignment="{{ content_alignment }}"
+  role="region"
+  aria-label="{{ heading | default: 'Featured content' | escape }}"
+>
+  <div class="cinematic__container">
+    <div class="cinematic__layers" aria-hidden="true">
+      {%- for i in (1..4) -%}
+        {%- liquid
+          assign image_key = 'image_' | append: i
+          assign image = section.settings[image_key]
+          assign start_position_key = 'start_position_' | append: i
+          assign start_position = section.settings[start_position_key]
+          assign direction_key = 'direction_' | append: i
+          assign direction = section.settings[direction_key]
+        -%}
+        {%- if image != blank -%}
+          <div
+            class="cinematic__layer cinematic__layer--{{ i }}"
+            data-layer="{{ i }}"
+            data-start-position="{{ start_position }}"
+            data-direction="{{ direction }}"
+            style="z-index: {{ 10 | minus: i }};"
+          >
+            {{
+              image
+              | image_url: width: 1500
+              | image_tag:
+                widths: image_widths,
+                sizes: '(min-width: 1440px) 1200px, (min-width: 750px) calc(100vw - 2rem), 100vw',
+                loading: image_lazy_loading,
+                fetchpriority: 'high',
+                class: 'cinematic__image',
+                alt: image.alt | default: heading | escape,
+                draggable: 'false'
+            }}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+    {% if overlay_gradient != blank or overlay_opacity > 0 %}
+      <div class="cinematic__overlay" aria-hidden="true"></div>
+    {% endif %}
+
+    <div class="cinematic__content cinematic__content--{{ content_alignment }}">
+      {%- if heading != blank -%}
+        <h1 class="cinematic__heading">{{ heading | escape }}</h1>
+      {%- endif -%}
+
+      {%- if subheading != blank -%}
+        <p class="cinematic__subheading">{{ subheading | escape }}</p>
+      {%- endif -%}
+
+      {%- if rich_text != blank -%}
+        <div class="cinematic__rich-text rte">
+          {{ rich_text }}
+        </div>
+      {%- endif -%}
+
+      {%- if primary_cta_label != blank or secondary_cta_label != blank -%}
+        <div class="cinematic__ctas">
+          {%- if primary_cta_label != blank -%}
+            <a
+              href="{{ primary_cta_url | default: '#' }}"
+              class="cinematic__cta cinematic__cta--primary"
+              {% if primary_cta_url == blank %}tabindex="-1" aria-disabled="true"{% endif %}
+            >
+              {{ primary_cta_label | escape }}
+            </a>
+          {%- endif -%}
+
+          {%- if secondary_cta_label != blank -%}
+            <a
+              href="{{ secondary_cta_url | default: '#' }}"
+              class="cinematic__cta cinematic__cta--secondary"
+              {% if secondary_cta_url == blank %}tabindex="-1" aria-disabled="true"{% endif %}
+            >
+              {{ secondary_cta_label | escape }}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      {%- if show_cards -%}
+        <div class="cinematic__cards">
+          {%- if card_product_1 != blank -%}
+            <div class="cinematic__card cinematic__card--product">
+              {%- render 'card-product',
+                card_product: card_product_1,
+                media_aspect_ratio: 'adapt',
+                show_secondary_image: false,
+                show_vendor: false,
+                show_rating: false,
+                lazy_load: true
+              -%}
+            </div>
+          {%- endif -%}
+
+          {%- if card_product_2 != blank -%}
+            <div class="cinematic__card cinematic__card--product">
+              {%- render 'card-product',
+                card_product: card_product_2,
+                media_aspect_ratio: 'adapt',
+                show_secondary_image: false,
+                show_vendor: false,
+                show_rating: false,
+                lazy_load: true
+              -%}
+            </div>
+          {%- endif -%}
+
+          {%- if card_collection_1 != blank -%}
+            <div class="cinematic__card cinematic__card--collection">
+              {%- render 'card-collection',
+                card_collection: card_collection_1,
+                media_aspect_ratio: 'adapt',
+                columns: 1
+              -%}
+            </div>
+          {%- endif -%}
+
+          {%- if card_collection_2 != blank -%}
+            <div class="cinematic__card cinematic__card--collection">
+              {%- render 'card-collection',
+                card_collection: card_collection_2,
+                media_aspect_ratio: 'adapt',
+                columns: 1
+              -%}
+            </div>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- if animation_enabled -%}
+      <button
+        class="cinematic__scroll-indicator"
+        aria-label="{{ 'accessibility.scroll_down' | t }}"
+        type="button"
+        onclick="window.scrollTo({top: window.innerHeight, behavior: 'smooth'})"
+      >
+        <span class="cinematic__scroll-indicator-line"></span>
+      </button>
+    {%- endif -%}
+  </div>
+</div>
+
+<script src="{{ 'cinematic-scroll-hero.js' | asset_url }}" defer="defer"></script>
+
+{% schema %}
+{
+  "name": "Cinematic Scroll Hero",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Experience the Journey"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Where innovation meets elegance"
+    },
+    {
+      "type": "richtext",
+      "id": "rich_text",
+      "label": "Description"
+    },
+    {
+      "type": "header",
+      "content": "Buttons"
+    },
+    {
+      "type": "text",
+      "id": "primary_cta_label",
+      "label": "Primary CTA label",
+      "default": "Explore Now"
+    },
+    {
+      "type": "url",
+      "id": "primary_cta_url",
+      "label": "Primary CTA URL"
+    },
+    {
+      "type": "text",
+      "id": "secondary_cta_label",
+      "label": "Secondary CTA label",
+      "default": "Learn More"
+    },
+    {
+      "type": "url",
+      "id": "secondary_cta_url",
+      "label": "Secondary CTA URL"
+    },
+    {
+      "type": "header",
+      "content": "Images"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image 1 (Foreground)"
+    },
+    {
+      "type": "select",
+      "id": "start_position_1",
+      "label": "Image 1 Start Position",
+      "options": [
+        { "value": "top-left", "label": "Top Left" },
+        { "value": "top-center", "label": "Top Center" },
+        { "value": "top-right", "label": "Top Right" },
+        { "value": "center-left", "label": "Center Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "center-right", "label": "Center Right" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-center", "label": "Bottom Center" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "direction_1",
+      "label": "Image 1 Animation Direction",
+      "options": [
+        { "value": "left", "label": "From Left" },
+        { "value": "right", "label": "From Right" },
+        { "value": "top", "label": "From Top" },
+        { "value": "bottom", "label": "From Bottom" },
+        { "value": "none", "label": "No Movement" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image 2"
+    },
+    {
+      "type": "select",
+      "id": "start_position_2",
+      "label": "Image 2 Start Position",
+      "options": [
+        { "value": "top-left", "label": "Top Left" },
+        { "value": "top-center", "label": "Top Center" },
+        { "value": "top-right", "label": "Top Right" },
+        { "value": "center-left", "label": "Center Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "center-right", "label": "Center Right" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-center", "label": "Bottom Center" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+      ],
+      "default": "top-right"
+    },
+    {
+      "type": "select",
+      "id": "direction_2",
+      "label": "Image 2 Animation Direction",
+      "options": [
+        { "value": "left", "label": "From Left" },
+        { "value": "right", "label": "From Right" },
+        { "value": "top", "label": "From Top" },
+        { "value": "bottom", "label": "From Bottom" },
+        { "value": "none", "label": "No Movement" }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image 3"
+    },
+    {
+      "type": "select",
+      "id": "start_position_3",
+      "label": "Image 3 Start Position",
+      "options": [
+        { "value": "top-left", "label": "Top Left" },
+        { "value": "top-center", "label": "Top Center" },
+        { "value": "top-right", "label": "Top Right" },
+        { "value": "center-left", "label": "Center Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "center-right", "label": "Center Right" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-center", "label": "Bottom Center" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+      ],
+      "default": "bottom-left"
+    },
+    {
+      "type": "select",
+      "id": "direction_3",
+      "label": "Image 3 Animation Direction",
+      "options": [
+        { "value": "left", "label": "From Left" },
+        { "value": "right", "label": "From Right" },
+        { "value": "top", "label": "From Top" },
+        { "value": "bottom", "label": "From Bottom" },
+        { "value": "none", "label": "No Movement" }
+      ],
+      "default": "bottom"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image 4"
+    },
+    {
+      "type": "select",
+      "id": "start_position_4",
+      "label": "Image 4 Start Position",
+      "options": [
+        { "value": "top-left", "label": "Top Left" },
+        { "value": "top-center", "label": "Top Center" },
+        { "value": "top-right", "label": "Top Right" },
+        { "value": "center-left", "label": "Center Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "center-right", "label": "Center Right" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-center", "label": "Bottom Center" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "select",
+      "id": "direction_4",
+      "label": "Image 4 Animation Direction",
+      "options": [
+        { "value": "left", "label": "From Left" },
+        { "value": "right", "label": "From Right" },
+        { "value": "top", "label": "From Top" },
+        { "value": "bottom", "label": "From Bottom" },
+        { "value": "none", "label": "No Movement" }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#1a1a2e"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color_background",
+      "id": "overlay_gradient",
+      "label": "Gradient overlay"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Overlay opacity",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 30,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Image width",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "layer_opacity",
+      "min": 20,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Layer opacity",
+      "default": 90
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "desktop_spacing_top",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "label": "Desktop spacing top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "desktop_spacing_bottom",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "label": "Desktop spacing bottom",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "mobile_spacing_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Mobile spacing top",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "mobile_spacing_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Mobile spacing bottom",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_height",
+      "min": 50,
+      "max": 150,
+      "step": 5,
+      "unit": "vh",
+      "label": "Section height",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "max_content_width",
+      "min": 400,
+      "max": 1400,
+      "step": 20,
+      "unit": "px",
+      "label": "Max content width",
+      "default": 1200
+    },
+    {
+      "type": "header",
+      "content": "Content Alignment"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content position",
+      "options": [
+        { "value": "top-left", "label": "Top Left" },
+        { "value": "top-center", "label": "Top Center" },
+        { "value": "top-right", "label": "Top Right" },
+        { "value": "center-left", "label": "Center Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "center-right", "label": "Center Right" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-center", "label": "Bottom Center" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "checkbox",
+      "id": "animation_enabled",
+      "label": "Enable animation",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "scroll_speed",
+      "min": 0.5,
+      "max": 3,
+      "step": 0.1,
+      "label": "Scroll speed",
+      "default": 1
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_enabled",
+      "label": "Enable floating animation",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "floating_intensity",
+      "min": 5,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "Floating intensity",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "rotation_amount",
+      "min": 0,
+      "max": 15,
+      "step": 0.5,
+      "unit": "deg",
+      "label": "Rotation amount",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "parallax_intensity",
+      "min": 0,
+      "max": 2,
+      "step": 0.1,
+      "label": "Parallax intensity",
+      "default": 0.5
+    },
+    {
+      "type": "range",
+      "id": "layer_spread",
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "unit": "px",
+      "label": "Layer spread",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "blur_amount",
+      "min": 0,
+      "max": 10,
+      "step": 0.5,
+      "unit": "px",
+      "label": "Blur amount",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "text",
+      "id": "image_widths",
+      "label": "Responsive image widths",
+      "default": "150, 300, 450, 600, 750, 900, 1050, 1200, 1500, 1800, 2100",
+      "info": "Comma-separated values"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        { "value": "auto", "label": "Adapt to image" },
+        { "value": "1/1", "label": "Square (1:1)" },
+        { "value": "3/4", "label": "Portrait (3:4)" },
+        { "value": "4/3", "label": "Landscape (4:3)" },
+        { "value": "16/9", "label": "Widescreen (16:9)" }
+      ],
+      "default": "16/9"
+    },
+    {
+      "type": "select",
+      "id": "image_object_fit",
+      "label": "Image object fit",
+      "options": [
+        { "value": "cover", "label": "Cover" },
+        { "value": "contain", "label": "Contain" },
+        { "value": "fill", "label": "Fill" }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "select",
+      "id": "image_lazy_loading",
+      "label": "Lazy loading",
+      "options": [
+        { "value": "lazy", "label": "Lazy" },
+        { "value": "eager", "label": "Eager" }
+      ],
+      "default": "lazy"
+    },
+    {
+      "type": "checkbox",
+      "id": "image_drop_shadow",
+      "label": "Enable drop shadow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Cards"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cards",
+      "label": "Show cards",
+      "default": false
+    },
+    {
+      "type": "product",
+      "id": "card_product_1",
+      "label": "Product card 1"
+    },
+    {
+      "type": "product",
+      "id": "card_product_2",
+      "label": "Product card 2"
+    },
+    {
+      "type": "collection",
+      "id": "card_collection_1",
+      "label": "Collection card 1"
+    },
+    {
+      "type": "collection",
+      "id": "card_collection_2",
+      "label": "Collection card 2"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Cinematic Scroll Hero",
+      "category": "Hero"
+    }
+  ],
+  "enabled_on": {
+    "templates": ["*"],
+    "groups": ["header"]
+  }
+}
+{% endschema %}
